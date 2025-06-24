@@ -1,0 +1,3 @@
+[submodule "mu-data-products"]
+	path = mu-data-products
+	url = https://github.com/sbfoster12/mu-data-products.git
