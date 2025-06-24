@@ -1,3 +1,6 @@
 [submodule "mu-data-products"]
 	path = mu-data-products
 	url = https://github.com/sbfoster12/mu-data-products.git
+[submodule "mu-unpackers"]
+	path = mu-unpackers
+	url = https://github.com/sbfoster12/mu-unpackers.git
