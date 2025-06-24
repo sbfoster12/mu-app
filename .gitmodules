@@ -4,3 +4,12 @@
 [submodule "mu-unpackers"]
 	path = mu-unpackers
 	url = https://github.com/sbfoster12/mu-unpackers.git
+[submodule "mu-analysis"]
+	path = mu-analysis
+	url = https://github.com/sbfoster12/mu-analysis.git
+[submodule "mu-notebooks"]
+	path = mu-notebooks
+	url = https://github.com/sbfoster12/mu-notebooks.git
+[submodule "mu-serializers"]
+	path = mu-serializers
+	url = https://github.com/sbfoster12/mu-serializers.git
