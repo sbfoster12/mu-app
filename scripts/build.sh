@@ -53,6 +53,40 @@ while [[ "$#" -gt 0 ]]; do
     esac
 done
 
+
+# Check that DATA_PRODUCTS_CMAKE_PREFIX_PATH is set
+if [[ -z $DATA_PRODUCTS_CMAKE_PREFIX_PATH ]]; then
+    echo "[build.sh, ERROR] DATA_PRODUCTS_CMAKE_PREFIX_PATH is not set. Please source $SCRIPT_DIR/setenv.sh first."
+   exit 1
+fi
+
+# Check that UNPACKERS_CMAKE_PREFIX_PATH is set
+if [[ -z $UNPACKERS_CMAKE_PREFIX_PATH ]]; then
+    echo "[build.sh, ERROR] UNPACKERS_CMAKE_PREFIX_PATH is not set. Please source $SCRIPT_DIR/setenv.sh first."
+    exit 1
+fi
+
+# Check that CMAKE_PREFIX_PATH has correct paths
+case ":$CMAKE_PREFIX_PATH:" in
+  *":$DATA_PRODUCTS_CMAKE_PREFIX_PATH:"*)
+    echo "DATA_PRODUCTS_CMAKE_PREFIX_PATH is set correctly in CMAKE_PREFIX_PATH"
+    ;;
+  *)
+    echo "DATA_PRODUCTS_CMAKE_PREFIX_PATH needs to be added to CMAKE_PREFIX_PATH. Please source $SCRIPT_DIR/setenv.sh first."
+    exit 1
+    ;;
+esac
+
+case ":$CMAKE_PREFIX_PATH:" in
+  *":$UNPACKERS_CMAKE_PREFIX_PATH:"*)
+    echo "UNPACKERS_CMAKE_PREFIX_PATH is set correctly in CMAKE_PREFIX_PATH"
+    ;;
+  *)
+    echo "UNPACKERS_CMAKE_PREFIX_PATH needs to be added to CMAKE_PREFIX_PATH. Please source $SCRIPT_DIR/setenv.sh first."
+    exit 1
+    ;;
+esac
+
 # Optionally clean build
 if [ "$OVERWRITE" = true ]; then
     echo "[build.sh] Cleaning previous build with: $CLEANUP_SCRIPT"
