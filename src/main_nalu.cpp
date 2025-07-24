@@ -34,6 +34,8 @@ Some description...
 #include <sstream>
 // #include <nlohmann/json.hpp>
 
+using unpackers::LoggerHolder;
+
 int main(int argc, char *argv[])
 {
     
@@ -64,7 +66,7 @@ int main(int argc, char *argv[])
     std::cout << "Output file: " << output_file_name << std::endl;
 
     // Set verbosity for unpacker
-    utils::LoggerHolder::getInstance().SetVerbosity(verbosity);
+    LoggerHolder::getInstance().SetVerbosity(verbosity);
 
     // End of parsing command line arguments
     // -----------------------------------------------------------------------------------------------
@@ -95,7 +97,7 @@ int main(int argc, char *argv[])
     dataProducts::NaluTimeCollection nalu_times;
     tree->Branch("nalu_times", &nalu_times);
 
-    dataProducts::NaluODB odb;
+    dataProducts::NaluODB nalu_odb;
 
     // -----------------------------------------------------------------------------------------------
 
@@ -144,8 +146,8 @@ int main(int argc, char *argv[])
                 // nlohmann::json j = nlohmann::json::parse(odb_dump);
                 // std::cout << j.dump(4) << std::endl;
                 // make the ODB data product
-                odb = dataProducts::NaluODB(odb_dump);
-                outfile->WriteObject(&odb, "nalu_odb");
+                nalu_odb = dataProducts::NaluODB(odb_dump);
+                outfile->WriteObject(&nalu_odb, "nalu_odb");
             }
             delete thisEvent;
             continue;

@@ -23,16 +23,31 @@ endif()
 # Set the path for where to look for the libraries of the installed target
 set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
-# Add the executable
-add_executable(mu_app src/main.cpp)
+# Add the executable for wfd5 unpacking
+add_executable(mu_app_wfd5 src/main_wfd5.cpp)
 
 # Include directories and link libraries
-target_link_libraries(mu_app PRIVATE 
+target_link_libraries(mu_app_wfd5 PRIVATE 
     DataProducts::data_products
     Unpackers::unpackers
     )
 
 # Install the executable
-install(TARGETS mu_app
+install(TARGETS mu_app_wfd5
+        DESTINATION bin
+)
+
+
+# Add the executable for nalu unpacking
+add_executable(mu_app_nalu src/main_nalu.cpp)
+
+# Include directories and link libraries
+target_link_libraries(mu_app_nalu PRIVATE 
+    DataProducts::data_products
+    Unpackers::unpackers
+    )
+
+# Install the executable
+install(TARGETS mu_app_nalu
         DESTINATION bin
 )
