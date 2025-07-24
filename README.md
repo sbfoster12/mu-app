@@ -38,3 +38,19 @@ Once the environment is configured, the application can be built with the follow
 ./scripts/build_all.sh
 ```
 This will build all the submodules and the main application, which depends on the submodules.
+
+## Running the application
+
+Building the application will create two executables, one to unpack midas files with WFD5 payloads and the other to unpack midas files with NALU payloads.
+
+Assuming that `MY_FILE.mid` is your midas file, you can run the unpacker via (for WFD5 payloads):
+```bash
+./install/bin/mu_app_wfd5 MY_FILE.mid 0
+```
+or (for NALU payloads):
+```bash
+./install/bin/mu_app_nalu MY_FILE.mid 0
+``` 
+where the `0` is the verbosity level. 
+
+Running these commands will create a ROOT file that you can use for all your analysis needs!
