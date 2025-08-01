@@ -13,3 +13,6 @@
 [submodule "mu-data-products"]
 	path = mu-data-products
 	url = https://github.com/sbfoster12/mu-data-products.git
+[submodule "mu-reco"]
+	path = mu-reco
+	url = git@github.com:sbfoster12/mu-reco.git
