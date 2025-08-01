@@ -6,7 +6,7 @@ This repository is the application level repo for using the midas unpacker.
 
 To clone the repository and its submodules, use the following command:
 ```bash
-git clone --recurse-submodules https://github.com/sbfoster12/mu-unpackers.git
+git clone --recurse-submodules https://github.com/sbfoster12/mu-app.git
 ```
 
 You can udpate the submodules later with:
@@ -29,7 +29,7 @@ Do so for all relevant submodules.
 
 Before building, you should first set up the environment. This can be done by sourcing the `setenv.sh` script:
 ```bash
-source ./sripts/setenv.sh
+source ./scripts/setenv.sh
 ```
 This script will source the setup scripts for the submodules as well.
 
