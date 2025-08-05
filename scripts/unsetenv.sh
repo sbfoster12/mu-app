@@ -17,3 +17,11 @@ else
     echo "[setenv.sh, ERROR] mu-unpackers scripts not found. Please ensure the mu-unpackers submodule is initialized and updated."
     exit 1
 fi  
+
+#reco
+if [ -f "$APP_PATH/mu-reco/scripts/unsetenv.sh" ]; then
+    source "$APP_PATH/mu-reco/scripts/unsetenv.sh"
+else
+    echo "[setenv.sh, ERROR] mu-reco scripts not found. Please ensure the mu-reco submodule is initialized and updated."
+    exit 1
+fi

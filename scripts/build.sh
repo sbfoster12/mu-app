@@ -66,6 +66,12 @@ if [[ -z $UNPACKERS_CMAKE_PREFIX_PATH ]]; then
     exit 1
 fi
 
+# Check that MU_RECO_CMAKE_PREFIX_PATH is set
+if [[ -z $MU_RECO_CMAKE_PREFIX_PATH ]]; then
+    echo "[build.sh, ERROR] MU_RECO_CMAKE_PREFIX_PATH is not set. Please source $SCRIPT_DIR/setenv.sh first."
+    exit 1
+fi
+
 # Check that CMAKE_PREFIX_PATH has correct paths
 case ":$CMAKE_PREFIX_PATH:" in
   *":$DATA_PRODUCTS_CMAKE_PREFIX_PATH:"*)
@@ -83,6 +89,16 @@ case ":$CMAKE_PREFIX_PATH:" in
     ;;
   *)
     echo "UNPACKERS_CMAKE_PREFIX_PATH needs to be added to CMAKE_PREFIX_PATH. Please source $SCRIPT_DIR/setenv.sh first."
+    exit 1
+    ;;
+esac
+
+case ":$CMAKE_PREFIX_PATH:" in
+  *":$MU_RECO_CMAKE_PREFIX_PATH:"*)
+    echo "MU_RECO_CMAKE_PREFIX_PATH is set correctly in CMAKE_PREFIX_PATH"
+    ;;
+  *)
+    echo "MU_RECO_CMAKE_PREFIX_PATH needs to be added to CMAKE_PREFIX_PATH. Please source $SCRIPT_DIR/setenv.sh first."
     exit 1
     ;;
 esac

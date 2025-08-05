@@ -17,13 +17,27 @@ Some description...
 #include <TBufferJSON.h>
 #include <TSystem.h>
 
-// Custom - Unpackers
-#include "unpackers/common/Logger.hh"
-#include "unpackers/wfd5/WFD5EventUnpacker.hh"
+// Unpackers
+#include <unpackers/common/Logger.hh>
+#include <unpackers/wfd5/WFD5EventUnpacker.hh>
 
 // WFD5 Data Products
+#include <data_products/wfd5/WFD5Header.hh>
+#include <data_products/wfd5/WFD5ChannelHeader.hh>
+#include <data_products/wfd5/WFD5WaveformHeader.hh>
 #include <data_products/wfd5/WFD5Waveform.hh>
 #include <data_products/wfd5/WFD5ODB.hh>
+
+// Reco
+#include <reco/wfd5/WFD5OutputManager.hh>
+#include <reco/common/EventStore.hh>
+#include <reco/common/ConfigHolder.hh>
+// RecoStages
+#include <reco/common/RecoManager.hh>
+#include <reco/wfd5/JitterCorrector.hh>
+// Services
+#include <reco/common/ServiceManager.hh>
+#include <reco/wfd5/TemplateService.hh>
 
 #include <string>
 #include <sstream>
@@ -37,16 +51,18 @@ int main(int argc, char *argv[])
     // -----------------------------------------------------------------------------------------------
     // Parse command line arguments
 
-    // We need three arguments: program & file name & verbosity
-    if (argc != 3) {
-        std::cerr << "Usage: " << argv[0] << " input_file_name verbosity" << std::endl;
+    // Parse the arguments
+    if (argc != 4) {
+        std::cerr << "Usage: " << argv[0] << " configFile inputFileName verbosity" << std::endl;
         return 1;
     }
+    // config file name
+    std::string config_file_name = argv[1];
 
     // input file name
-    std::string input_file_name = argv[1];
+    std::string input_file_name = argv[2];
 
-    int verbosity = std::atoi(argv[2]);
+    int verbosity = std::atoi(argv[3]);
 
     // Check if input file exists
     if (!std::filesystem::exists(input_file_name)) {
@@ -54,11 +70,42 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    // Check if config file exists
+    if (!std::filesystem::exists(config_file_name)) {
+        std::cerr << "Config file doesn't exist. Could not find " << config_file_name << std::endl;
+        return 1;
+    }
+
+    // Parse the run/subrun number from the file name
+    std::cout << "-> main: Reading in file: " << input_file_name << std::endl;
+    int run = 0;
+    int subrun = 0;
+    try
+    {
+        size_t start1 = input_file_name.find("run") + 3;
+        size_t end1 = input_file_name.find("_", start1);
+        std::string num1 = input_file_name.substr(start1, end1 - start1);
+
+        // Find the start and end of the second number
+        size_t start2 = end1 + 1;
+        size_t end2 = input_file_name.find(".", start2);
+        std::string num2 = input_file_name.substr(start2, end2 - start2);
+
+        // Convert strings to integers
+        std::stringstream(num1) >> run;
+        std::stringstream(num2) >> subrun;
+        std::cout << "-> main: Run/Subrun of this file: " << run << " / " << subrun << std::endl;
+    }
+    catch (...)
+    {
+        std::cerr << "-> main: Warning: Unable to parse run/subrun from file" << std::endl;
+    }
+
     // output file name
     std::string output_file_name;
     output_file_name = input_file_name.substr(input_file_name.find_last_of("/\\") + 1);
-    output_file_name = output_file_name.substr(0, output_file_name.find_last_of('.')) + ".root";
-    std::cout << "Output file: " << output_file_name << std::endl;
+    output_file_name = output_file_name.substr(0, output_file_name.find_first_of('.')) + ".root";
+    std::cout << "-> main: Output file: " << output_file_name << std::endl;
 
     // Set verbosity for unpacker
     LoggerHolder::getInstance().SetVerbosity(verbosity);
@@ -66,38 +113,52 @@ int main(int argc, char *argv[])
     // End of parsing command line arguments
     // -----------------------------------------------------------------------------------------------
 
-    // create the output file structure
-    TFile *outfile = new TFile(output_file_name.c_str(),"RECREATE");
 
-    // without these next lines, time to process 1 file on my local machine: 5.500s, 62MB
-    // outfile->SetCompressionLevel(0); // much faster, but the file size doubles (62->137 MB), 2.936s
-    outfile->SetCompressionAlgorithm(4); // LZ4. 40-50% faster, but slightly larger file sizes. 3.292s, 91MB
-    TTree *tree = new TTree("tree", "tree");
+    // -----------------------------------------------------------------------------------------------
+    // Set up the various managers etc.
 
-    dataProducts::WFD5WaveformCollection wfd5_waveforms;
-    tree->Branch("wfd5_waveforms", &wfd5_waveforms);
+    // Create configuration holder
+    std::shared_ptr<reco::ConfigHolder> configHolder = std::make_shared<reco::ConfigHolder>();
+    configHolder->LoadFromFile(config_file_name);
+    configHolder->SetRunSubrun(run, subrun);
 
-    dataProducts::WFD5ODB wfd5_odb;
+    // Create the output manager
+    reco::OutputManager* outputManager = new reco::WFD5OutputManager(output_file_name);
+    outputManager->Configure(configHolder);
+
+    // Create the midas event unpacker
+    unpackers::EventUnpacker* eventUnpacker = new unpackers::WFD5EventUnpacker();
+
+    // Create the EventStore to hold all the data products during processing
+    reco::EventStore eventStore;
+
+    // Create the service manager
+    reco::ServiceManager serviceManager;
+    serviceManager.Configure(configHolder);
+
+    // Create the reco manager
+    reco::RecoManager recoManager;
+    recoManager.Configure(configHolder, serviceManager);
+
+    // Create some histograms
+    auto hist = std::make_shared<TH1D>("energy", "Energy Spectrum", 100, 0, 1000);
+    eventStore.putHistogram("energy", hist);
+
+    // Create the Midas reader
+    TMReaderInterface *mReader = TMNewReader(input_file_name.c_str());
 
     // -----------------------------------------------------------------------------------------------
 
-    // Set up an event unpacker object
-    // This object contains the methods for
-    // doing the unpacking of a TMEvent
-    auto eventUnpacker = new unpackers::WFD5EventUnpacker();
-
-    // We need to get a midas event
-    TMReaderInterface *mReader = TMNewReader(input_file_name.c_str());
-
+    // -----------------------------------------------------------------------------------------------
+    // Time to start the midas event loop
     int nTotalMidasEvents = 0;
     int nSkippedMidasEvents= 0;
 
     // loop over the events
-    while (true)
-    {
+    while (true) {
         TMEvent *thisEvent = TMReadEvent(mReader);
         //if (!thisEvent || nTotalMidasEvents > 100 )
-        if (!thisEvent || nTotalMidasEvents > 100 )
+        if (!thisEvent)
         {
             // Reached end of the file. Clean up and break
             delete thisEvent;
@@ -105,7 +166,7 @@ int main(int argc, char *argv[])
         }
 
         if (thisEvent->serial_number % 100 == 0) {
-            std::cout << "event_id: " << thisEvent->event_id << ", serial number: " << thisEvent->serial_number << std::endl;
+            std::cout << "-> main: event_id: " << thisEvent->event_id << ", serial number: " << thisEvent->serial_number << std::endl;
         }
         
         int event_id = thisEvent->event_id;
@@ -126,8 +187,9 @@ int main(int argc, char *argv[])
                 // nlohmann::json j = nlohmann::json::parse(odb_dump);
                 // std::cout << j.dump(4) << std::endl;
                 // make the ODB data product
-                wfd5_odb = dataProducts::WFD5ODB(odb_dump);
-                outfile->WriteObject(&wfd5_odb, "wfd5_odb");
+                std::shared_ptr<dataProducts::DataProduct> wfd5_odb = std::make_shared<dataProducts::WFD5ODB>(odb_dump);
+                eventStore.put_odb(wfd5_odb);
+                outputManager->WriteODB(eventStore);
             }
             delete thisEvent;
             continue;
@@ -141,40 +203,48 @@ int main(int argc, char *argv[])
         // only unpack events with id 1
         if (event_id == 1) {
             nTotalMidasEvents++;
-            //std::cout << "Processing event " << nTotalMidasEvents << std::endl;
-            // Unpack the event
-            // This will fill the dataproduct collections
-            auto status = eventUnpacker->UnpackEvent(thisEvent);
-        
-            // std::cout << "status: " << status << std::endl;
-            // Only proceed if the status = 0
-            if (status != 0) {
-                delete thisEvent;
-                continue;
+            // std::cout << "Processing event " << nTotalMidasEvents << std::endl;
+            
+            // Unpack the event; this is done in a loop in case there are multiple "trigger" events in the midas event
+            unpackers::unpackingStatus status = unpackers::unpackingStatus::Failure;
+            while ( (status = eventUnpacker->UnpackEvent(thisEvent)) == unpackers::unpackingStatus::SuccessMore) {
+
+                // Put the unpacked data into the event store
+                eventStore.clear();  // clear previous event's data
+                eventStore.put("unpacker","WFD5HeaderCollection", eventUnpacker->GetNextPtrCollection<dataProducts::WFD5Header>("WFD5HeaderCollection"));
+                eventStore.put("unpacker","WFD5ChannelHeaderCollection", eventUnpacker->GetNextPtrCollection<dataProducts::WFD5ChannelHeader>("WFD5ChannelHeaderCollection"));
+                eventStore.put("unpacker","WFD5WaveformHeaderCollection", eventUnpacker->GetNextPtrCollection<dataProducts::WFD5WaveformHeader>("WFD5WaveformHeaderCollection"));
+                eventStore.put("unpacker","WFD5WaveformCollection", eventUnpacker->GetNextPtrCollection<dataProducts::WFD5Waveform>("WFD5WaveformCollection"));
+
+                // Run reconstruction stages
+                try {
+                    recoManager.Run(eventStore, serviceManager);
+                } catch (const std::exception& e) {
+                    std::cerr << "Error during reconstruction: " << e.what() << std::endl;
+                    return 1;
+                }
+
+                // Fill the output tree with the event data
+                outputManager->FillEvent(eventStore);
             }
-            // break;
 
-            // wfd5_waveforms = eventUnpacker->GetCollection<dataProducts::Waveform>("WaveformCollection");
-            auto waveformsVector = eventUnpacker->GetCollectionVector<dataProducts::WFD5Waveform>("WFD5WaveformCollection", &dataProducts::WFD5Waveform::waveformIndex);
-            for (auto &waveforms_tmp : waveformsVector) {
-                wfd5_waveforms = waveforms_tmp;
-                tree->Fill();
-                wfd5_waveforms.clear();
-            } // end of loop over waveform collections (each Midas event can have multiple triggers)
-
+            // Clean up the event now that we are done with it
+            delete thisEvent;
+            continue;
+            
         } // end if event id = 1
 
     } // end loop over events
 
+    outputManager->WriteHistograms(eventStore);
+
     // clean up
     delete eventUnpacker;
+    delete outputManager;
     delete mReader;
 
-    tree->Write();
-    outfile->Close();
+    std::cout << "-> main: Skipped " << nSkippedMidasEvents << "/" << nTotalMidasEvents << " midas events" << std::endl;
 
-    std::cout << "Skipped " << nSkippedMidasEvents << "/" << nTotalMidasEvents << " midas events" << std::endl;
-
-    std::cout << "All done!" << std::endl;
+    std::cout << "-> main: All done!" << std::endl;
     return 0;
 }

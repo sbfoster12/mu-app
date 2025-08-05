@@ -14,6 +14,7 @@ set(CMAKE_OSX_ARCHITECTURES "arm64")
 # Custom dependencies
 find_package(DataProducts CONFIG REQUIRED)
 find_package(Unpackers CONFIG REQUIRED)
+find_package(Reco CONFIG REQUIRED)
 
 # Create installation directories
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -30,6 +31,7 @@ add_executable(mu_app_wfd5 src/main_wfd5.cpp)
 target_link_libraries(mu_app_wfd5 PRIVATE 
     DataProducts::data_products
     Unpackers::unpackers
+    Reco::reco
     )
 
 # Install the executable
@@ -37,17 +39,16 @@ install(TARGETS mu_app_wfd5
         DESTINATION bin
 )
 
+# # Add the executable for nalu unpacking
+# add_executable(mu_app_nalu src/main_nalu.cpp)
 
-# Add the executable for nalu unpacking
-add_executable(mu_app_nalu src/main_nalu.cpp)
+# # Include directories and link libraries
+# target_link_libraries(mu_app_nalu PRIVATE 
+#     DataProducts::data_products
+#     Unpackers::unpackers
+#     )
 
-# Include directories and link libraries
-target_link_libraries(mu_app_nalu PRIVATE 
-    DataProducts::data_products
-    Unpackers::unpackers
-    )
-
-# Install the executable
-install(TARGETS mu_app_nalu
-        DESTINATION bin
-)
+# # Install the executable
+# install(TARGETS mu_app_nalu
+#         DESTINATION bin
+# )

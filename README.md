@@ -43,14 +43,13 @@ This will build all the submodules and the main application, which depends on th
 
 Building the application will create two executables, one to unpack midas files with WFD5 payloads and the other to unpack midas files with NALU payloads.
 
-Assuming that `MY_FILE.mid` is your midas file, you can run the unpacker via (for WFD5 payloads):
+Assuming that `my_file.mid` is your midas file and reco_config.json is your configuration file, you can run the application via (for WFD5 payloads):
 ```bash
-./install/bin/mu_app_wfd5 MY_FILE.mid 0
+./install/bin/mu_app_wfd5  ./config/reco_config.json my_file.mid 0
 ```
-or (for NALU payloads):
-```bash
-./install/bin/mu_app_nalu MY_FILE.mid 0
-``` 
 where the `0` is the verbosity level. 
 
 Running these commands will create a ROOT file that you can use for all your analysis needs!
+
+## More details on reconstruction
+For more details on how to add new reconstruction stages or services, please refer to the `mu-reco` repository documentation: [mu-reco README](https://github.com/sbfoster12/mu-reco/blob/main/README.md)
